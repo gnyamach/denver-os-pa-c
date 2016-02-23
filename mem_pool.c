@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <stdio.h> // for perror()
-
 #include "mem_pool.h"
 
 /* Constants */
@@ -13,16 +12,16 @@ static const float      MEM_FILL_FACTOR                 = 0.75;
 static const unsigned   MEM_EXPAND_FACTOR               = 2;
 
 static const unsigned   MEM_POOL_STORE_INIT_CAPACITY    = 20;
-static const float      MEM_POOL_STORE_FILL_FACTOR      = MEM_FILL_FACTOR;
-static const unsigned   MEM_POOL_STORE_EXPAND_FACTOR    = MEM_EXPAND_FACTOR;
+static const float      MEM_POOL_STORE_FILL_FACTOR      = 0.75;
+static const unsigned   MEM_POOL_STORE_EXPAND_FACTOR    = 2;
 
 static const unsigned   MEM_NODE_HEAP_INIT_CAPACITY     = 40;
-static const float      MEM_NODE_HEAP_FILL_FACTOR       = MEM_FILL_FACTOR;
-static const unsigned   MEM_NODE_HEAP_EXPAND_FACTOR     = MEM_EXPAND_FACTOR;
+static const float      MEM_NODE_HEAP_FILL_FACTOR       = 0.75;
+static const unsigned   MEM_NODE_HEAP_EXPAND_FACTOR     = 2;
 
 static const unsigned   MEM_GAP_IX_INIT_CAPACITY        = 40;
-static const float      MEM_GAP_IX_FILL_FACTOR          = MEM_FILL_FACTOR;
-static const unsigned   MEM_GAP_IX_EXPAND_FACTOR        = MEM_EXPAND_FACTOR;
+static const float      MEM_GAP_IX_FILL_FACTOR          = 0.75;
+static const unsigned   MEM_GAP_IX_EXPAND_FACTOR        = 2;
 
 /* Type declarations */
 typedef struct _node {
@@ -67,44 +66,67 @@ static alloc_status
                                 node_pt node);
 static alloc_status _mem_sort_gap_ix(pool_mgr_pt pool_mgr);
 
-
 /* Definitions of user-facing functions */
+/*
+ * This function should be called first and called only once until a corresponding  mem_free() . It initializes the
+ * memory pool (manager) store, a data structure which stores records for separate memory pools.
+ */
 alloc_status mem_init() {
     // TODO implement
 
     return ALLOC_FAIL;
 }
 
+/*
+ * This function should be called last and called only once for each corresponding  mem_init() . It frees the pool
+ * (manager) store memory.
+ */
 alloc_status mem_free() {
     // TODO implement
 
     return ALLOC_FAIL;
 }
-
+/*
+ * This function allocates a single memory pool from which separate allocations can be performed. It takes a  size  in
+ * bytes, and an allocation policy, either  FIRST_FIT  or  BEST_FIT .
+ * */
 pool_pt mem_pool_open(size_t size, alloc_policy policy) {
     // TODO implement
 
     return NULL;
 }
-
+/*
+ * This function deallocates a single memory pool.
+ */
 alloc_status mem_pool_close(pool_pt pool) {
     // TODO implement
 
     return ALLOC_FAIL;
 }
 
+/*
+ * This function performs a single allocation of  size in bytes from the given memory pool. Allocations from different
+ * memory pools are independent.
+ */
 alloc_pt mem_new_alloc(pool_pt pool, size_t size) {
     // TODO implement
 
     return NULL;
 }
-
+/*
+ * This function deallocates the given allocation from the given memory pool.
+ */
 alloc_status mem_del_alloc(pool_pt pool, alloc_pt alloc) {
     // TODO implement
 
     return ALLOC_FAIL;
 }
 
+/*
+ * This function returns a new dynamically allocated array of the pool  segments  (allocations or gaps) in the order
+ * in which they are in the pool. The number of segments is returned in  num_segments . The caller is responsible
+ * for freeing the array.
+ */
 // NOTE: Allocates a dynamic array. Caller responsible for releasing.
 void mem_inspect_pool(pool_pt pool, pool_segment_pt *segments, unsigned *num_segments) {
     // TODO implement

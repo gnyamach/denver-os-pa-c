@@ -27,6 +27,8 @@
 *.i*86
 *.x86_64
 *.hex
+*.xml
+*.prop*
 
 # Debug files
 *.dSYM/
@@ -34,3 +36,4 @@
 # Jet Brains
 .idea
 
+nbproject/
