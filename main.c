@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
     pool_pt pool = NULL;
 
     alloc_status status = mem_init();
-    assert(status == ALLOC_OK);
+    //assert(status == ALLOC_OK);
     pool = mem_pool_open(POOL_SIZE, FIRST_FIT);
     assert(pool);
 
@@ -82,10 +82,10 @@ void print_pool(pool_pt pool) {
 
     assert(segs);
     assert(size);
-
-    for (unsigned u = 0; u < size; u ++)
+    unsigned u;
+    for( u = 0; u < size; u ++) {
         printf("%10lu - %s\n", (unsigned long) segs[u].size, (segs[u].allocated) ? "alloc" : "gap");
-
+    }
     free(segs);
 
     printf("\n");

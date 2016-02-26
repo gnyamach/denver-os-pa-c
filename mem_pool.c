@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <stdio.h> // for perror()
 #include "mem_pool.h"
+#include <stdbool.h>
 
 /*************/
 /*           */
@@ -49,12 +50,11 @@ typedef struct _gap {
 typedef struct _pool_mgr {
     pool_t pool;
     node_pt node_heap;
-    unsigned total_nodes;
+    unsigned int total_nodes;
     unsigned used_nodes;
     gap_pt gap_ix;
     unsigned gap_ix_capacity;
 } pool_mgr_t, *pool_mgr_pt;
-
 
 
 /***************************/
@@ -86,33 +86,64 @@ static alloc_status
                                 node_pt node);
 static alloc_status _mem_sort_gap_ix(pool_mgr_pt pool_mgr);
 
-
-/****************************************/
 /*                                      */
 /* Definitions of user-facing functions */
+/*                                      */
 /*
  * This function should be called first and called only once until a corresponding  mem_free() . It initializes the
  * memory pool (manager) store, a data structure which stores records for separate memory pools.
  */
+//TESTED
 alloc_status mem_init() {
     // ensure that it's called only once until mem_free
+    if (pool_store){
+        printf("Pool Store already Allocated.\r\n");
+        return ALLOC_CALLED_AGAIN;
+    }
     // allocate the pool store with initial capacity
     // note: holds pointers only, other functions to allocate/deallocate
-
-    return ALLOC_FAIL;
+    pool_store = (pool_mgr_pt *) calloc(MEM_POOL_STORE_INIT_CAPACITY, sizeof(pool_mgr_t));
+    //Have to check that allocation succeeded to eliminate errors
+    if(pool_store == NULL) {
+        printf("Calloc was unsuccessful for pool_store\r\n");
+    }
+    //Initialization of other variables in pool_store
+    pool_store_size = 0;
+    pool_store_capacity = MEM_POOL_STORE_INIT_CAPACITY;
+    /*
+        int i;
+        for(i =0; i< MEM_POOL_STORE_INIT_CAPACITY; i++){
+            printf("size of [%d] is: %d \n\r",i, pool_store[i] ->used_nodes);
+            pool_store++;
+        }
+     */
+    printf("pool_store initialization successful.\r\n");
+    return ALLOC_OK;
 }
 
 /*
  * This function should be called last and called only once for each corresponding  mem_init() . It frees the pool
  * (manager) store memory.
  */
+
 alloc_status mem_free() {
     // ensure that it's called only once for each mem_init
+    if (pool_store == NULL){
+        return ALLOC_CALLED_AGAIN;
+    }
+
     // make sure all pool managers have been deallocated
+    unsigned int i;
+    for( i = 0;i < pool_store_size; i++ ){
+         mem_pool_close(&pool_store[i]-> pool);
+    }
     // can free the pool store array
     // update static variables
+    free(pool_store);
+    pool_store_size = 0;
+    pool_store_capacity = 0;
 
-    return ALLOC_FAIL;
+    return ALLOC_OK;
 }
 /*
  * This function allocates a single memory pool from which separate allocations can be performed. It takes a  size  in
@@ -120,10 +151,37 @@ alloc_status mem_free() {
  * */
 pool_pt mem_pool_open(size_t size, alloc_policy policy) {
     // make sure there the pool store is allocated
-    // expand the pool store, if necessary
+    if (pool_store == NULL){
+        //initialize memory if not initialized
+        if (mem_init() != ALLOC_OK){
+            // expand the pool store, if necessary and return NULL on failure
+            if(_mem_resize_pool_store() != ALLOC_OK){
+                return NULL;
+            }
+        }
+
+    }
     // allocate a new mem pool mgr
+    pool_mgr_pt temp_mgr  = (pool_mgr_pt)calloc(size, sizeof(pool_mgr_t));
     // check success, on error return null
+    if(temp_mgr == NULL){
+        printf("pool_mgr initialization NOT successful.\r\n");
+        return NULL;
+    }
     // allocate a new memory pool
+    pool_store[pool_store_size] = temp_mgr;
+
+
+    pool_store_size++;
+    char* mem_pool_temp = (char *)calloc (size, sizeof(char));
+    pool_store[pool_store_size]->pool.mem = mem_pool_temp;
+    gap_pt temp_gap = (gap_pt)calloc(MEM_GAP_IX_INIT_CAPACITY, sizeof(gap_t));
+    node_pt temp_nodeheap = (node_pt)calloc(MEM_NODE_HEAP_INIT_CAPACITY, sizeof(node_t));
+    temp_nodeheap[0].alloc_record.mem =mem_pool_temp;
+    temp_nodeheap[0].alloc_record.size = size;
+
+
+
     // check success, on error deallocate mgr and return null
     // allocate a new node heap
     // check success, on error deallocate mgr/pool and return null
@@ -248,10 +306,6 @@ alloc_status mem_del_alloc(pool_pt pool, alloc_pt alloc) {
  */
 // NOTE: Allocates a dynamic array. Caller responsible for releasing.
 void mem_inspect_pool(pool_pt pool, pool_segment_pt *segments, unsigned *num_segments) {
-    // TODO implement
-void mem_inspect_pool(pool_pt pool,
-                      pool_segment_pt *segments,
-                      unsigned *num_segments) {
     // get the mgr from the pool
     // allocate the segments array with size == used_nodes
     // check successful
@@ -272,7 +326,7 @@ void mem_inspect_pool(pool_pt pool,
 /*                                 */
 /***********************************/
 static alloc_status _mem_resize_pool_store() {
-    // check if necessary
+    /* check if necessary
     /*
                 if (((float) pool_store_size / pool_store_capacity)
                     > MEM_POOL_STORE_FILL_FACTOR) {...}
