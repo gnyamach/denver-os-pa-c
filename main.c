@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
     pool_pt pool = NULL;
 
     alloc_status status = mem_init();
-    //assert(status == ALLOC_OK);
+    assert(status == ALLOC_OK);
     pool = mem_pool_open(POOL_SIZE, FIRST_FIT);
     assert(pool);
 
@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
     assert(alloc1);
 
     print_pool(pool);
-
+    //    print_pool2(pool);
     // - alloc-0
     status = mem_del_alloc(pool, alloc0);
     assert(status == ALLOC_OK);
@@ -79,8 +79,8 @@ void print_pool(pool_pt pool) {
     assert(pool);
 
     mem_inspect_pool(pool, &segs, &size);
-
-    assert(segs);
+    //TODO: Remove the commenting
+    //assert(segs);
     assert(size);
     unsigned u;
     for( u = 0; u < size; u ++) {
