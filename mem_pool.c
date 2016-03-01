@@ -246,17 +246,31 @@ pool_pt mem_pool_open(size_t size, alloc_policy policy) {
  */
 alloc_status mem_pool_close(pool_pt pool) {
     // get mgr from pool by casting the pointer to (pool_mgr_pt)
+    pool_mgr_pt close_pool_mgr = (pool_mgr_pt)pool;
+
     // check if this pool is allocated
     // check if pool has only one gap
     // check if it has zero allocations
-    // free memory pool
-    // free node heap
-    // free gap index
-    // find mgr in pool store and set to null
-    // note: don't decrement pool_store_size, because it only grows
-    // free mgr
-
-    return ALLOC_FAIL;
+    if (pool->mem == NULL && pool->num_gaps == 1 && close_pool_mgr->used_nodes == 1){
+        // free memory pool
+        // free node heap
+        // free gap index
+        free(pool->mem);
+        free(close_pool_mgr->node_heap);
+        free(close_pool_mgr->gap_ix);
+        // find mgr in pool store and set to null
+        for(int i = 0; i < pool_store_size; i++){
+            if(pool_store[i]== close_pool_mgr){
+                pool_store[i] = NULL;
+                break;
+            }
+        }
+        // note: don't decrement pool_store_size, because it only grows
+        // free mgr
+        free(close_pool_mgr);
+    }
+    assert(pool_store);
+    return ALLOC_OK;
 }
 
 /*
