@@ -328,7 +328,7 @@ alloc_pt mem_new_alloc(pool_pt pool, size_t size) {
     // adjust node heap:
     if(re_size > 0){
         //   if remaining gap, need a new node
-        node_pt unused_node;
+        node_pt unused_node = NULL;
         //   find an unused one in the node heap
         for(unsigned i =0; 1 > temp_pool_mgr->total_nodes; i++){
             if(temp_pool_mgr->node_heap[i].used == 0){
@@ -364,18 +364,47 @@ alloc_pt mem_new_alloc(pool_pt pool, size_t size) {
  */
 alloc_status mem_del_alloc(pool_pt pool, alloc_pt alloc) {
     // get mgr from pool by casting the pointer to (pool_mgr_pt)
+    pool_mgr_pt temp_pool_mgr = (pool_mgr_pt)pool;
     // get node from alloc by casting the pointer to (node_pt)
+    node_pt temp_node = (node_pt)alloc;
     // find the node in the node heap
-    // this is node-to-delete
+    node_pt delete_node = NULL;
+    for (unsigned i = 0; i < temp_pool_mgr->total_nodes; i++){
+        if(temp_node = temp_pool_mgr->node_heap){
+            // this is node-to-delete
+            delete_node = &temp_pool_mgr->node_heap[i];
+            break;
+        }
+    }
     // make sure it's found
+    assert(delete_node);
+
     // convert to gap node
+    delete_node->allocated = 0;
     // update metadata (num_allocs, alloc_size)
+    temp_pool_mgr->pool.num_allocs --;
+    temp_pool_mgr->pool.alloc_size -= delete_node->alloc_record.size;
     // if the next node in the list is also a gap, merge into node-to-delete
-    //   remove the next node from gap index
-    //   check success
-    //   add the size to the node-to-delete
-    //   update node as unused
-    //   update metadata (used nodes)
+    if((delete_node->next)&& (delete_node->next->allocated == 0)){
+        //   remove the next node from gap index
+        node_pt next_node = delete_node->next;
+        size_t node_size = next_node->alloc_record.size;
+        alloc_status status = _mem_remove_from_gap_ix(temp_pool_mgr, node_size, next_node);
+        //   check success
+        assert(status);
+
+        //   add the size to the node-to-delete
+        delete_node->alloc_record.size += node_size;
+        //   update node as unused
+        delete_node->used = 0; //TODO check
+        //   update metadata (used nodes)
+        temp_pool_mgr->used_nodes --;
+    }
+
+
+
+
+
     //   update linked list:
     /*
                     if (next->next) {
