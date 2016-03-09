@@ -103,28 +103,31 @@ alloc_status mem_init() {
     if (pool_store){
         printf("Pool Store already Allocated.\r\n");
         return ALLOC_CALLED_AGAIN;
-    }
-    // allocate the pool store with initial capacity.
-    // An array if MEM_POOL_STORE_INIT_CAPACITY is created.
-    // note: holds pointers only, other functions to allocate/deallocate
-    pool_store = (pool_mgr_pt *) calloc(MEM_POOL_STORE_INIT_CAPACITY, sizeof(pool_mgr_t));
-    //Have to check that allocation succeeded to eliminate errors
-    if(pool_store == NULL) {
-        printf("calloc was unsuccessful for pool_store\r\n");
-    }
-    //Initialization of other variables in pool_store
-    pool_store_size = 0;
-    pool_store_capacity = MEM_POOL_STORE_INIT_CAPACITY;
-    /*
-        int i;
-        for(i =0; i< MEM_POOL_STORE_INIT_CAPACITY; i++){
-            printf("size of [%d] is: %d \n\r",i, pool_store[i] ->used_nodes);
-            pool_store++;
+    }else {
+        // allocate the pool store with initial capacity.
+        // An array if MEM_POOL_STORE_INIT_CAPACITY is created.
+        // note: holds pointers only, other functions to allocate/deallocate
+        pool_mgr_pt *temp_pool_store = (pool_mgr_pt *) calloc(MEM_POOL_STORE_INIT_CAPACITY, sizeof(pool_mgr_t));
+        assert(temp_pool_store);
+        //Have to check that allocation succeeded to eliminate errors
+        if (temp_pool_store == NULL) {
+            printf("calloc was unsuccessful for pool_store\r\n");
         }
-     */
-    assert(pool_store);
-    printf("pool_store initialization successful.\r\n");
-    return ALLOC_OK;
+        //Initialization of other variables in pool_store
+        pool_store_size = 0;
+        pool_store_capacity = MEM_POOL_STORE_INIT_CAPACITY;
+        pool_store = temp_pool_store;
+        /*
+            int i;
+            for(i =0; i< MEM_POOL_STORE_INIT_CAPACITY; i++){
+                printf("size of [%d] is: %d \n\r",i, pool_store[i] ->used_nodes);
+                pool_store++;
+            }
+         */
+
+        printf("pool_store initialization successful.\r\n");
+        return ALLOC_OK;
+    }
 }
 
 /*
@@ -156,15 +159,12 @@ alloc_status mem_free() {
  * bytes, and an allocation policy, either  FIRST_FIT  or  BEST_FIT .
  * */
 pool_pt mem_pool_open(size_t size, alloc_policy policy) {
-    // make sure there the pool store is allocated
+    // make sure that the pool store is allocated
     assert(pool_store);
 
     // expand the pool store, if necessary
-    alloc_status status = _mem_resize_pool_store();
-    if (status == ALLOC_FAIL){
-        printf("_mem_resize_pool_store NOT successful.\r\n");
-        return NULL;
-    }
+   _mem_resize_pool_store();
+
 
     // allocate a new mem pool mgr
     pool_mgr_pt temp_pool_mgr = (pool_mgr_pt) calloc(1, sizeof(pool_mgr_t));
@@ -275,16 +275,21 @@ alloc_status mem_pool_close(pool_pt pool) {
  * memory pools are independent.
  */
 alloc_pt mem_new_alloc(pool_pt pool, size_t size) {
+    printf("This part did not run, pool size is: %d", size);
     // get mgr from pool by casting the pointer to (pool_mgr_pt)
     pool_mgr_pt temp_pool_mgr = (pool_mgr_pt)pool;
     // check if any gaps, return null if none
     if (pool->num_gaps == 0){
+        printf("The mem_new_alloc FAILED ie found gaps");
         return NULL;
     }
     // expand heap node, if necessary, quit on error
     _mem_resize_node_heap(temp_pool_mgr);
+    assert(temp_pool_mgr);
+
     // check used nodes fewer than total nodes, quit on error
-    if(temp_pool_mgr->used_nodes < temp_pool_mgr->total_nodes){
+    if(temp_pool_mgr->used_nodes > temp_pool_mgr->total_nodes){
+        printf("ERROR: The mem_new_alloc used nodes < than total nodes found");
         return NULL;
     }
     // get a node for allocation:
@@ -335,7 +340,8 @@ alloc_pt mem_new_alloc(pool_pt pool, size_t size) {
         }
         //   make sure one was found
         //   initialize it to a gap node
-        assert(unused_node);
+        //assert(unused_node);
+        // TO DO: CHECK AGAIN
         unused_node->alloc_record.size = re_size;
         unused_node->allocated = 0;
         unused_node->used = 1;
@@ -353,7 +359,6 @@ alloc_pt mem_new_alloc(pool_pt pool, size_t size) {
     }
 
     // return allocation record by casting the node to (alloc_pt)
-
     return (alloc_pt)alloc_node;
 }
 /*
@@ -533,6 +538,7 @@ static alloc_status _mem_resize_pool_store() {
     }
 
     return ALLOC_FAIL;
+
 }
 
 /*
